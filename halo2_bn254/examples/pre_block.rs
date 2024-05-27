@@ -10,14 +10,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CircuitInput {}
 
-// fn random_bytes<const NUM_BYTES: usize>(zero_bytes: usize) -> [u8; NUM_BYTES] {
-//     use rand::Rng;
-//     let mut rng = rand::thread_rng();
-//     let mut bytes = vec![0u8; NUM_BYTES - zero_bytes];
-//     rng.fill(bytes.as_mut_slice());
-//     [bytes, vec![0u8; zero_bytes]].concat().as_slice().try_into().unwrap()
-// }
-
 fn pre_block<F: ScalarField>(
     builder: &mut BaseCircuitBuilder<F>,
     _: CircuitInput,

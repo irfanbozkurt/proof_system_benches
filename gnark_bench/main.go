@@ -23,20 +23,8 @@ type MyCircuit struct {
 
 func (circuit *MyCircuit) Define(api frontend.API) error {
 
-	var _modulus big.Int
-	_modulus.SetString("30644e72e131a029b85045b68181585d2833e84879b9709143e1f593f0000001", 16)
-
 	var _upper big.Int
 	_upper.SetString("1000000000000000000000000000000000000000", 16) // 2^160
-
-	var _upper_minus_one big.Int
-	_upper_minus_one.SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF", 16) // 2^160 - 1
-
-	var _y big.Int
-	_y.SetString("FFFFFFFFFFFFFFFFFFFF", 16)
-
-	var one fr.Element
-	one.SetOne()
 
 	rangeChecker := rangecheck.New(api)
 
