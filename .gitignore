@@ -4,7 +4,7 @@
 **/configs/*
 **/.vscode/*
 
-
+.DS_Store
 
 pk
 vk
