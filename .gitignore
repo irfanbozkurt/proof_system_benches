@@ -1,0 +1,14 @@
+**/target/*
+
+**/params/*
+**/configs/*
+**/.vscode/*
+
+.DS_Store
+
+pk
+vk
+*.work
+*.work.sum
+
+
