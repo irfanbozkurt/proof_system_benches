@@ -1,0 +1,14 @@
+[package]
+name = "plonky2_bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# plonky2_crypto = { git = "https://github.com/JumpCrypto/plonky2-crypto", branch = "main" }
+anyhow = "1.0.40"
+itertools = "0.13.0"
+num-bigint = "0.4.5"
+num = { version = "0.4", default-features = false }
+plonky2 = {version = "0.2.2", default-features = false}
+rand = "0.8.5"
+
