@@ -1,14 +1,32 @@
-[package]
-name = "plonky2_bench"
-version = "0.1.0"
+[workspace]
+members = ["field", "maybe_rayon", "plonky2", "starky", "util"]
+resolver = "2"
+
+[workspace.dependencies]
+ahash = { version = "0.8.7", default-features = false, features = ["compile-time-rng"] } # NOTE: Be sure to keep this version the same as the dependency in `hashbrown`.
+anyhow = { version = "1.0.40", default-features = false }
+hashbrown = { version = "0.14.3", default-features = false, features = ["ahash", "serde"] } # NOTE: When upgrading, see `ahash` dependency.
+itertools = { version = "0.11.0", default-features = false }
+log = { version = "0.4.14", default-features = false }
+num = { version = "0.4", default-features = false, features = ["rand"] }
+rand = { version = "0.8.4", default-features = false }
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+static_assertions = { version = "1.1.0", default-features = false }
+unroll = { version = "0.1.5", default-features = false }
+
+[profile.release]
+opt-level = 3
+incremental = true
+#lto = "fat"
+#codegen-units = 1
+
+[profile.bench]
+opt-level = 3
+
+[workspace.package]
 edition = "2021"
-
-[dependencies]
-# plonky2_crypto = { git = "https://github.com/JumpCrypto/plonky2-crypto", branch = "main" }
-anyhow = "1.0.40"
-itertools = "0.13.0"
-num-bigint = "0.4.5"
-num = { version = "0.4", default-features = false }
-plonky2 = {version = "0.2.2", default-features = false}
-rand = "0.8.5"
-
+license = "MIT OR Apache-2.0"
+homepage = "https://github.com/0xPolygonZero/plonky2"
+repository = "https://github.com/0xPolygonZero/plonky2"
+keywords = ["cryptography", "SNARK", "PLONK", "FRI", "plonky2"]
+categories = ["cryptography"]
