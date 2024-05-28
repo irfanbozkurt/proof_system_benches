@@ -92,7 +92,7 @@ fn main() {
         builder.connect(lte.target, _true.target);
     }
 
-    // // Build the circuit
+    // Build the circuit
     let data = builder.build::<C>();
 
     // Prove
