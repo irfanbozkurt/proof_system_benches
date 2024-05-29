@@ -9,7 +9,7 @@ echo "";
 
 # gnark_bench
 cd gnark_bench;
-go run pre_block.go 0;
+go run main.go 0;
 echo "";
 echo "";
 cd ..;
