@@ -17,20 +17,15 @@ PoseidonCount: 0
 # TRANSACTION LOOP (BLOCK SIZE = 1)
 
 GkrMimcCount: 5582
-
 FromBinaryCount: 236
-
 PoseidonCount: 66
 ToBinaryCount: 65
-
-CmpCount: 49 <!-- range check for hints -->
-AssertCmpCount: 19 <!-- range check for hints -->
-
-FloorDivCount: 13 <!-- integer division -->
+CmpCount: 49
+AssertCmpCount: 19
+FloorDivCount: 13
 IsNegativeCount: 6
-AbsCount: 4
 NativeMimcCount: 4
-
+AbsCount: 4 <!-- unaccounted -->
 ShaBytesCount: 0
 
 # CHECK STATE ROOT + EVALUATE COMMITMENT

@@ -11,13 +11,16 @@ import (
 
 	"github.com/consensys/gnark-crypto/ecc"
 	fr "github.com/consensys/gnark-crypto/ecc/bn254/fr"
+	tedwards "github.com/consensys/gnark-crypto/ecc/twistededwards"
 	"github.com/consensys/gnark/backend"
 	groth16 "github.com/consensys/gnark/backend/groth16/bn254"
 	cs "github.com/consensys/gnark/constraint/bn254"
 	"github.com/consensys/gnark/constraint/solver"
 	"github.com/consensys/gnark/frontend"
 	"github.com/consensys/gnark/frontend/cs/r1cs"
-
+	"github.com/consensys/gnark/std/algebra/native/twistededwards"
+	"github.com/consensys/gnark/std/hash/mimc"
+	"github.com/consensys/gnark/std/math/bits"
 	"github.com/consensys/gnark/std/math/cmp"
 	"github.com/consensys/gnark/std/rangecheck"
 )
@@ -248,25 +251,81 @@ func (circuit *TxLoopCircuit) Define(api frontend.API) error {
 
 	cmprtr := cmp.NewBoundedComparator(api, &_upper, false)
 
+	// Native MiMC
+	nativeMimc, err := mimc.NewMiMC(api)
+	if err != nil {
+		return err
+	}
+	curve, err := twistededwards.NewEdCurve(api, tedwards.BN254)
+	if err != nil {
+		return err
+	}
+	base := twistededwards.Point{
+		X: curve.Params().Base[0],
+		Y: curve.Params().Base[1],
+	}
+
+	for i := 0; i < 16; i++ {
+		nativeMimc.Reset()
+		nativeMimc.Write(circuit.X)
+		hRAM := nativeMimc.Sum()
+		Q := curve.DoubleBaseScalarMul(base, base, circuit.X, hRAM)
+		curve.AssertIsOnCurve(Q)
+	}
+
+	// gkr mimc
+	bN, err := ChooseBN(13)
+	if err != nil {
+		return err
+	}
+	gkrMimc := NewMimcGKR(api, bN)
+
+	var hash frontend.Variable
+	for i := 0; i < 5582; i++ {
+		hash = MimcWithGkr(
+			gkrMimc,
+			circuit.X,
+			circuit.Y,
+		)
+	}
+	gkrMimc.VerifyGKRMimc(hash)
+
+	// Poseidon
+	for i := 0; i < 66; i++ {
+		Poseidon(api, circuit.X, circuit.Y)
+	}
+
 	// Comparison
-	for i := 0; i < 1280; i++ {
+	for i := 0; i < 49; i++ {
 		res := cmprtr.IsLess(circuit.Y, circuit.X)
 		api.AssertIsEqual(res, 1)
 	}
 
 	// Asserted Comparison
-	for i := 0; i < 1024; i++ {
+	for i := 0; i < 19; i++ {
 		cmprtr.AssertIsLess(circuit.Y, circuit.X)
 	}
 
+	// IsNegative
+	for i := 0; i < 6; i++ {
+		rangeChecker.Check(circuit.X, 160)
+	}
+
 	// Integer division
-	for i := 0; i < 256; i++ {
+	for i := 0; i < 13; i++ {
 		FloorDiv(api, circuit.X, circuit.Y)
 	}
 
-	// IsNegative
-	for i := 0; i < 256; i++ {
-		rangeChecker.Check(circuit.X, 160)
+	var x_bits []frontend.Variable
+	// ToBinary
+	for i := 0; i < 65; i++ {
+		x_bits = bits.ToBinary(api, circuit.X)
+	}
+
+	// FromBinary
+	for i := 0; i < 236; i++ {
+		x_from_binary := bits.FromBinary(api, x_bits)
+		api.AssertIsEqual(circuit.X, x_from_binary)
 	}
 
 	return nil
@@ -280,6 +339,72 @@ func TxLoop() {
 	var _y big.Int
 	_y.SetString("FFFFFFFFFFFFFFF", 16)
 
+	circuit := TxLoopCircuit{
+		X: _upper_minus_one,
+		Y: _y,
+	}
+
+	r1cs, err := frontend.Compile(
+		ecc.BN254.ScalarField(), r1cs.NewBuilder, &circuit, frontend.IgnoreUnconstrainedInputs(),
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	r1csAsCS, ok := r1cs.(*cs.R1CS)
+	if !ok {
+		panic("Failed to assert r1cs to *constraint.R1CS")
+	}
+
+	fmt.Println("####### Setting up")
+	pk := groth16.ProvingKey{}
+	vk := groth16.VerifyingKey{}
+
+	err = groth16.Setup(r1csAsCS, &pk, &vk)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("####### Assigning witness")
+	witness, err := frontend.NewWitness(&TxLoopCircuit{
+		X: _upper_minus_one,
+		Y: _y,
+	}, ecc.BN254.ScalarField())
+	if err != nil {
+		panic(err)
+	}
+
+	totalProvingTime := time.Duration(0)
+	totalVerifyingTime := time.Duration(0)
+	numIterations := 1
+
+	for i := 0; i < numIterations; i++ {
+		fmt.Println("####### Proving")
+
+		startTime := time.Now()
+		proof, err := groth16.Prove(r1csAsCS, &pk, witness, backend.WithSolverOptions(solver.WithHints(MIMC2Elements, IntegerDivision)))
+		if err != nil {
+			panic(err)
+		}
+		totalProvingTime += time.Since(startTime)
+
+		fmt.Println("####### Verify")
+
+		pubWitness, _ := witness.Public()
+		pubVector := pubWitness.Vector()
+
+		vector, ok := pubVector.(fr.Vector)
+		if !ok {
+			panic("pubVector is not of type fr.Vector")
+		}
+
+		startTime = time.Now()
+		err = groth16.Verify(proof, &vk, vector)
+		if err != nil {
+			panic(err)
+		}
+		totalVerifyingTime += time.Since(startTime)
+	}
 }
 
 //////////////////////////////////////////////////////
@@ -292,38 +417,11 @@ type StateRootCircuit struct {
 
 func (circuit *StateRootCircuit) Define(api frontend.API) error {
 
-	var _upper big.Int
-	_upper.SetString("1000000000000000000000000000000000000000", 16) // 2^160
-
-	rangeChecker := rangecheck.New(api)
-
-	cmprtr := cmp.NewBoundedComparator(api, &_upper, false)
-
-	// Comparison
-	for i := 0; i < 1280; i++ {
-		res := cmprtr.IsLess(circuit.Y, circuit.X)
-		api.AssertIsEqual(res, 1)
-	}
-
-	// Asserted Comparison
-	for i := 0; i < 1024; i++ {
-		cmprtr.AssertIsLess(circuit.Y, circuit.X)
-	}
-
-	// Integer division
-	for i := 0; i < 256; i++ {
-		FloorDiv(api, circuit.X, circuit.Y)
-	}
-
-	// IsNegative
-	for i := 0; i < 256; i++ {
-		rangeChecker.Check(circuit.X, 160)
-	}
-
 	return nil
 }
 
 func StateRoot() {
+
 }
 
 //////////////////////////////////////////////////////

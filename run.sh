@@ -9,7 +9,7 @@ echo "";
 
 # gnark_bench
 cd gnark_bench;
-go run main.go 0;
+go run . 0;
 echo "";
 echo "";
 cd ..;
