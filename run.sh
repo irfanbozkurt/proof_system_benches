@@ -27,14 +27,14 @@ echo "Proving";
 LOOKUP_BITS=8 cargo run --release \
 	--example pre_block \
 	-- --name pre_block \
-	-k 10 \
-	prove;
+	-k 10 prove;
+
 echo "Verifying";
 LOOKUP_BITS=8 cargo run \
 	--example pre_block \
 	-- --name pre_block \
-	-k 10 \
-	verify
+	-k 10 verify;
+
 cd ..;
 echo "";
 echo "";
@@ -75,14 +75,13 @@ echo "Proving";
 RAYON_NUM_THREADS=16 LOOKUP_BITS=16 cargo run --release \
 		--example tx_loop \
 		-- --name tx_loop \
-		-k 17 \                   
-		prove;
+		-k 17 prove;
+
 echo "Verifying";
 RAYON_NUM_THREADS=16 LOOKUP_BITS=16 cargo run --release \
 		--example tx_loop \
 		-- --name tx_loop \
-		-k 17 \                   
-		verify;
+		-k 17 verify;
 cd ..;
 echo "";
 echo "";

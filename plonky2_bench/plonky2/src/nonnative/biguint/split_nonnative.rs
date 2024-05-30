@@ -32,6 +32,14 @@ pub trait CircuitBuilderSplit<F: RichField + Extendable<D>, const D: usize> {
         &mut self,
         limbs: Vec<Target>,
     ) -> NonNativeTarget<FF>;
+
+    fn split_nonnative_to_1_bit_limbs<FF: Field>(
+        &mut self,
+        val: &NonNativeTarget<FF>,
+    ) -> Vec<Target>;
+
+    // Note: assumes its inputs are 4-bit limbs, and does not range-check.
+    fn recombine_nonnative_bits<FF: Field>(&mut self, limbs: &[Target]) -> NonNativeTarget<FF>;
 }
 
 impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderSplit<F, D>
@@ -71,6 +79,36 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderSplit<F, D>
             .collect()
     }
 
+    fn split_nonnative_to_1_bit_limbs<FF: Field>(
+        &mut self,
+        val: &NonNativeTarget<FF>,
+    ) -> Vec<Target> {
+        val.value
+            .limbs
+            .iter()
+            .flat_map(|&l| self.split_le_base::<2>(l.0, 32))
+            .collect()
+    }
+
+    fn recombine_nonnative_bits<FF: Field>(&mut self, limbs: &[Target]) -> NonNativeTarget<FF> {
+        let base = self.constant_u32(1 << 1);
+        let u32_limbs = limbs
+            .chunks(32)
+            .map(|chunk| {
+                let mut combined_chunk = self.zero_u32();
+                for i in (0..32).rev() {
+                    let (low, _high) = self.mul_add_u32(combined_chunk, base, U32Target(chunk[i]));
+                    combined_chunk = low;
+                }
+                combined_chunk
+            })
+            .collect();
+
+        NonNativeTarget {
+            value: BigUintTarget { limbs: u32_limbs },
+            _phantom: PhantomData,
+        }
+    }
     // Note: assumes its inputs are 4-bit limbs, and does not range-check.
     fn recombine_nonnative_4_bit_limbs<FF: Field>(
         &mut self,
