@@ -135,14 +135,14 @@ func (d *Digest) checkSum(chunkBytesToIgnore frontend.Variable) frontend.Variabl
 
 	uapi32 := NewUint32API(d.api)
 	hashBytes := [][]Xuint8{
-		toBytes(*uapi32, d.h[0]),
-		toBytes(*uapi32, d.h[1]),
-		toBytes(*uapi32, d.h[2]),
-		toBytes(*uapi32, d.h[3]),
-		toBytes(*uapi32, d.h[4]),
-		toBytes(*uapi32, d.h[5]),
-		toBytes(*uapi32, d.h[6]),
-		toBytes(*uapi32, d.h[7]),
+		XxUinttoBytes(*uapi32, d.h[0]),
+		XxUinttoBytes(*uapi32, d.h[1]),
+		XxUinttoBytes(*uapi32, d.h[2]),
+		XxUinttoBytes(*uapi32, d.h[3]),
+		XxUinttoBytes(*uapi32, d.h[4]),
+		XxUinttoBytes(*uapi32, d.h[5]),
+		XxUinttoBytes(*uapi32, d.h[6]),
+		XxUinttoBytes(*uapi32, d.h[7]),
 	}
 	var res []Xuint8
 	for i := 0; i < 8; i++ {
@@ -158,6 +158,6 @@ func (d *Digest) checkSum(chunkBytesToIgnore frontend.Variable) frontend.Variabl
 	return d.api.FromBinary(sha256Bits[:]...)
 }
 
-func toBytes(uapi32 Uint32api, x Xuint32) []Xuint8 {
+func XxUinttoBytes(uapi32 Uint32api, x Xuint32) []Xuint8 {
 	return uapi32.EncodeToXuint8BigEndian(x)
 }

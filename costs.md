@@ -32,17 +32,16 @@ ShaBytesCount: 0
 
 # CHECK STATE ROOT + EVALUATE COMMITMENT
 
-FromBinaryCount: 484
 ShaBytesCount: 484
-ToBinaryCount: 84
 
+FromBinaryCount: 484
+ToBinaryCount: 84
 CmpCount: 3 <!-- range check for hints -->
 AssertCmpCount: 1 <!-- range check for hints -->
-
 FloorDivCount: 1 <!-- integer division -->
+GkrMimcCount: 1
 
 AbsCount: 0
 IsNegativeCount: 0
 NativeMimcCount: 0
-GkrMimcCount: 1
 PoseidonCount: 0
