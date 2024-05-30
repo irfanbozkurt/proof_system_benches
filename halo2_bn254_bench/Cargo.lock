@@ -863,6 +863,7 @@ dependencies = [
  "halo2_proofs",
  "log",
  "rand",
+ "rayon",
  "serde",
  "serde_json",
  "snark-verifier-sdk",

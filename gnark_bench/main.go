@@ -256,6 +256,7 @@ func (circuit *TxLoopCircuit) Define(api frontend.API) error {
 	if err != nil {
 		return err
 	}
+
 	curve, err := twistededwards.NewEdCurve(api, tedwards.BN254)
 	if err != nil {
 		return err
@@ -274,7 +275,7 @@ func (circuit *TxLoopCircuit) Define(api frontend.API) error {
 	}
 
 	// gkr mimc
-	bN, err := ChooseBN(13)
+	bN, err := ChooseBN(4)
 	if err != nil {
 		return err
 	}

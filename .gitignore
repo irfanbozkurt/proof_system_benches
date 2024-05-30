@@ -6,9 +6,11 @@
 
 .DS_Store
 
-pk
-vk
+*.pk
+*.vk
 *.work
 *.work.sum
-
+pk
+vk
+*.snark
 

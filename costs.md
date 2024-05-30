@@ -17,9 +17,11 @@ PoseidonCount: 0
 # TRANSACTION LOOP (BLOCK SIZE = 1)
 
 GkrMimcCount: 5582
-FromBinaryCount: 236
 PoseidonCount: 66
+
+FromBinaryCount: 236
 ToBinaryCount: 65
+
 CmpCount: 49
 AssertCmpCount: 19
 FloorDivCount: 13

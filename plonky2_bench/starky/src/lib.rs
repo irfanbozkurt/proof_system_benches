@@ -343,6 +343,4 @@ pub mod fibonacci_stark;
 #[cfg(test)]
 pub mod permutation_stark;
 #[cfg(test)]
-pub mod pre_block_stark;
-#[cfg(test)]
 pub mod unconstrained_stark;

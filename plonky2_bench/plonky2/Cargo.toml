@@ -61,14 +61,6 @@ name = "generate_constants"
 required-features = ["rand_chacha"]
 
 [[bench]]
-name = "field_arithmetic"
-harness = false
-
-[[bench]]
-name = "ffts"
-harness = false
-
-[[bench]]
 name = "hashing"
 harness = false
 
@@ -76,13 +68,6 @@ harness = false
 name = "merkle"
 harness = false
 
-[[bench]]
-name = "transpose"
-harness = false
-
-[[bench]]
-name = "reverse_index_bits"
-harness = false
 
 # Display math equations properly in documentation
 [package.metadata.docs.rs]
