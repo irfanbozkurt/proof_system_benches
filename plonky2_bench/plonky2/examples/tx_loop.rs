@@ -1,57 +1,14 @@
 use jemallocator::Jemalloc;
 use num::{BigUint, Num};
-use plonky2::field::cosets::get_unique_coset_shifts;
-use plonky2::field::extension::{Extendable, FieldExtension};
-use plonky2::field::fft::fft_root_table;
-use plonky2::field::polynomial::PolynomialValues;
 use plonky2::field::types::Field;
-use plonky2::fri::oracle::PolynomialBatch;
-use plonky2::fri::FriParams;
-use plonky2::gadgets::hash::*;
-use plonky2::gadgets::polynomial::PolynomialCoeffsExtTarget;
-use plonky2::gates::arithmetic_base::ArithmeticGate;
-use plonky2::gates::arithmetic_extension::ArithmeticExtensionGate;
-use plonky2::gates::constant::ConstantGate;
-use plonky2::gates::gate::Gate;
-use plonky2::gates::gate::{CurrentSlot, GateInstance, GateRef};
-use plonky2::gates::gate_testing::{test_eval_fns, test_low_degree};
-use plonky2::gates::lookup::{Lookup, LookupGate};
-use plonky2::gates::lookup_table::LookupTable;
-use plonky2::gates::noop::NoopGate;
-use plonky2::gates::poseidon_mds::PoseidonMdsGate;
-use plonky2::gates::public_input::PublicInputGate;
-use plonky2::hash::hash_types::{HashOut, HashOutTarget, MerkleCapTarget};
-use plonky2::hash::merkle_proofs::MerkleProofTarget;
-use plonky2::hash::merkle_tree::MerkleCap;
-use plonky2::hash::poseidon::{PoseidonHash, PoseidonPermutation};
-use plonky2::iop::ext_target::ExtensionTarget;
-use plonky2::iop::generator::generate_partial_witness;
-use plonky2::iop::generator::{
-    ConstantGenerator, CopyGenerator, RandomValueGenerator, SimpleGenerator, WitnessGeneratorRef,
-};
-use plonky2::iop::target::{BoolTarget, Target};
+use plonky2::hash::poseidon::PoseidonHash;
 use plonky2::nonnative::biguint::nonnative::CircuitBuilderNonNative;
 use plonky2::nonnative::biguint::nonnative::NonNativeTarget;
 use plonky2::nonnative::biguint::split_nonnative::CircuitBuilderSplit;
-use plonky2::plonk::circuit_data::{
-    CircuitData, CommonCircuitData, MockCircuitData, ProverCircuitData, ProverOnlyCircuitData,
-    VerifierCircuitData, VerifierCircuitTarget, VerifierOnlyCircuitData,
-};
-use plonky2::plonk::config::GenericHashOut;
-use plonky2::plonk::config::{AlgebraicHasher, Hasher};
-use plonky2::plonk::plonk_common::PlonkOracle;
-use plonky2::timed;
-use plonky2::util::timing::TimingTree;
-use plonky2::util::{log2_ceil, log2_strict, transpose};
+use plonky2::plonk::config::Hasher;
 use plonky2::{
-    field::goldilocks_field::GoldilocksField,
     fri::{reduction_strategies::FriReductionStrategy, FriConfig},
-    gates::poseidon::PoseidonGate,
-    hash::{hash_types::RichField, poseidon::SPONGE_WIDTH},
-    iop::{
-        wire::Wire,
-        witness::{PartialWitness, WitnessWrite},
-    },
+    iop::witness::{PartialWitness, WitnessWrite},
     nonnative::biguint::biguint::{CircuitBuilderBiguint, WitnessBigUint},
     plonk::{
         circuit_builder::CircuitBuilder,
@@ -71,8 +28,12 @@ fn main() {
     type F = <C as GenericConfig<D>>::F;
     // let mut rng = OsRng;
 
+    let negative_example_value =
+        BigUint::from_str_radix("91343852333181432387730302044767688728495783945", 10).unwrap(); // 2^160+16
+    let upper_limit_value =
+        BigUint::from_str_radix("91343852333181432387730302044767688728495783935", 10).unwrap(); // 2^160
     let x_value =
-        BigUint::from_str_radix("91343852333181432387730302044767688728495783935", 10).unwrap();
+        BigUint::from_str_radix("91343852333181432387730302044767688728495783934", 10).unwrap(); // 2^160-1
     let y_value = BigUint::from_str_radix("1152921504606846975", 10).unwrap();
 
     // Init circuit
@@ -99,72 +60,83 @@ fn main() {
     // Fill targets & connect expected values
     let x = builder.add_virtual_biguint_target(x_value.to_u32_digits().len());
     let y = builder.add_virtual_biguint_target(y_value.to_u32_digits().len());
+    let upper_limit = builder.add_virtual_biguint_target(upper_limit_value.to_u32_digits().len());
+    let negative_example =
+        builder.add_virtual_biguint_target(negative_example_value.to_u32_digits().len());
 
     pw.set_biguint_target(&x, &x_value);
     pw.set_biguint_target(&y, &y_value);
+    pw.set_biguint_target(&upper_limit, &upper_limit_value);
+    pw.set_biguint_target(&negative_example, &negative_example_value);
 
-    // // Poseidon
-    // let x_limbs: Vec<F> = x_value
-    //     .to_u32_digits()
-    //     .iter()
-    //     .map(|u32_val| F::from_canonical_u32(*u32_val))
-    //     .collect();
-    // let expected_hash_out = PoseidonHash::hash_no_pad(x_limbs.as_slice());
-    // for _ in 0..5648 {
-    //     let public_inputs_hash = builder
-    //         .hash_n_to_hash_no_pad::<<C as GenericConfig<D>>::InnerHasher>(
-    //             x.limbs.iter().map(|u32_target| u32_target.0).collect(),
-    //         );
-    //     pw.set_hash_target(public_inputs_hash, expected_hash_out);
-    // }
+    // Poseidon (Instead of MiMC)
+    let x_limbs: Vec<F> = x_value
+        .to_u32_digits()
+        .iter()
+        .map(|u32_val| F::from_canonical_u32(*u32_val))
+        .collect();
+    let expected_hash_out = PoseidonHash::hash_no_pad(x_limbs.as_slice());
+    for _ in 0..5648 {
+        let public_inputs_hash = builder
+            .hash_n_to_hash_no_pad::<<C as GenericConfig<D>>::InnerHasher>(
+                x.limbs.iter().map(|u32_target| u32_target.0).collect(),
+            );
+        pw.set_hash_target(public_inputs_hash, expected_hash_out);
+    }
 
     // To binary
+    let nonnative_x = builder.biguint_to_nonnative::<F>(&x);
+    let split = builder.split_nonnative_to_1_bit_limbs(&nonnative_x);
+    let combined: NonNativeTarget<F> = builder.recombine_nonnative_bits(&split);
+    builder.connect_nonnative(&nonnative_x, &combined);
     for _ in 0..64 {
-        println!("{}", x.num_limbs());
-        let nonnative_target = builder.biguint_to_nonnative::<F>(&x);
-        let split = builder.split_nonnative_to_1_bit_limbs(&nonnative_target);
+        let nonnative_x = builder.biguint_to_nonnative::<F>(&x);
+        let split = builder.split_nonnative_to_1_bit_limbs(&nonnative_x);
         let combined = builder.recombine_nonnative_bits(&split);
-        // let combined: NonNativeTarget<F> =
-        //     builder.recombine_nonnative_bits(split.iter().map(|t| t.target).collect());
-
-        builder.connect_nonnative(&nonnative_target, &combined);
+        builder.connect_nonnative(&nonnative_x, &combined);
     }
 
     // From binary
-    for _ in 0..236 {}
+    for _ in 0..(236 - 65) {
+        let combined = builder.recombine_nonnative_bits(&split);
+        builder.connect_nonnative(&nonnative_x, &combined);
+    }
 
-    // // Comparison
-    // for _ in 0..1280 {
-    //     let lte = builder.cmp_biguint(&y, &x);
-    //     let expected_lte = builder.constant_bool(y_value <= x_value);
-    //     builder.connect(lte.target, expected_lte.target);
-    // }
+    // Comparison
+    for _ in 0..49 {
+        let lte = builder.cmp_biguint(&y, &x);
+        let expected_lte = builder.constant_bool(y_value <= x_value);
+        builder.connect(lte.target, expected_lte.target);
+    }
 
-    // // Asserted Comparison
-    // for _ in 0..1024 {
-    //     let lte = builder.cmp_biguint(&y, &x);
-    //     let expected_lte = builder.constant_bool(y_value <= x_value);
-    //     builder.connect(lte.target, expected_lte.target);
-    // }
+    // Asserted Comparison
+    for _ in 0..19 {
+        let lte = builder.cmp_biguint(&y, &x);
+        let expected_lte = builder.constant_bool(y_value <= x_value);
+        builder.connect(lte.target, expected_lte.target);
+    }
 
-    // // Integer division
-    // for _ in 0..256 {
-    //     let div_result = builder.div_biguint(&x, &y);
-    //     let expected_div = builder.constant_biguint(&(&x_value / &y_value));
-    //     builder.connect_biguint(&div_result, &expected_div);
-    // }
+    // Integer division
+    for _ in 0..13 {
+        let div_result = builder.div_biguint(&x, &y);
+        let expected_div = builder.constant_biguint(&(&x_value / &y_value));
+        builder.connect_biguint(&div_result, &expected_div);
+    }
 
-    // let constant_2_to_160_value =
-    //     BigUint::from_str_radix("91343852333181432387730302044767688728495783935", 10).unwrap();
-    // let constant_2_to_160 = builder.constant_biguint(&constant_2_to_160_value); // 2^160 - 1
+    let _true = builder.constant_bool(x_value <= upper_limit_value);
 
-    // let _true = builder.constant_bool(x_value <= constant_2_to_160_value);
+    // IsNegative, which is <160 bits in our case
+    for _ in 0..6 {
+        let lte = builder.cmp_biguint(&x, &upper_limit);
+        builder.connect(lte.target, _true.target);
+    }
 
-    // // IsNegative, which is <160 bits in our case
-    // for _ in 0..256 {
-    //     let lte = builder.cmp_biguint(&constant_2_to_160, &x);
-    //     builder.connect(lte.target, _true.target);
-    // }
+    // Abs
+    for _ in 0..4 {
+        let lte = builder.cmp_biguint(&upper_limit, &negative_example);
+        builder.connect(lte.target, _true.target);
+        builder.sub_biguint(&negative_example, &upper_limit);
+    }
 
     // Build the circuit
     let data = builder.build::<C>();

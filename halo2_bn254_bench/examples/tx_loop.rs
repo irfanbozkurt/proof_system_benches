@@ -87,6 +87,7 @@ fn tx_loop<F: BigPrimeField>(
     // Abs
     for _ in 0..4 {
         range.range_check(ctx, x, 160);
+        // Always add to consider the worst case
         gate.add(ctx, x, upper); // add 2^160 to make negative
     }
 }
