@@ -15,7 +15,6 @@ log = "=0.4"
 env_logger = "=0.10"
 clap = { version = "=4.0", features = ["derive"] }
 clap-num = "=1.0.2"
-
 # halo2
 halo2_proofs = { git = "https://github.com/privacy-scaling-explorations/halo2.git", tag = "v2023_02_02" }
 rayon = { version = "1.8.0", optional = true }

@@ -42,15 +42,6 @@ fn verify_block<F: BigPrimeField>(
     ); // 2^160 - 1
     let y = ctx.load_witness(F::from_str_vartime("1152921504606846975").unwrap());
 
-    // Poseidon (instead of MiMC)
-    let mut poseidon =
-        PoseidonHasher::<F, T, RATE>::new(OptimizedPoseidonSpec::new::<R_F, R_P, 0>());
-    poseidon.initialize_consts(ctx, &gate);
-
-    for _ in 0..5648 {
-        poseidon.hash_fix_len_array(ctx, &gate, &[x, y]);
-    }
-
     // To binary
     let x_bits = range.decompose_le(ctx, x, 1, 160);
     for _ in 0..64 {
