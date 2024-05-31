@@ -32,8 +32,6 @@ fn verify_block<F: Field + BigPrimeField>(
     _: CircuitInput,
     _: &mut Vec<AssignedValue<F>>,
 ) {
-    // Init the context
-
     let range = builder.range_chip();
     let gate = GateChip::<F>::default();
 
@@ -41,28 +39,18 @@ fn verify_block<F: Field + BigPrimeField>(
 
     let ctx: &mut halo2_base::Context<F> = builder.main(0);
 
-    let upper = ctx.load_witness(
-        F::from_str_vartime("91343852333181432387730302044767688728495783935").unwrap(),
-    ); // 2^160
     let x = ctx.load_witness(
         F::from_str_vartime("91343852333181432387730302044767688728495783934").unwrap(),
     ); // 2^160 - 1
     let y = ctx.load_witness(F::from_str_vartime("1152921504606846975").unwrap());
 
-    // // To binary
-    // let x_bits = range.decompose_le(ctx, x, 1, 160);
-    // for _ in 0..64 {
-    //     range.decompose_le(ctx, x, 1, 160);
-    // }
-
-    // Poseidon (instead of MiMC)
+    // Poseidon (instead of GkrMimc)
     let mut poseidon =
         PoseidonHasher::<F, T, RATE>::new(OptimizedPoseidonSpec::new::<R_F, R_P, 0>());
     poseidon.initialize_consts(ctx, &gate);
-
-    // for _ in 0..5648 {
-    //     poseidon.hash_fix_len_array(ctx, &gate, &[x, y]);
-    // }
+    for _ in 0..1 {
+        poseidon.hash_fix_len_array(ctx, &gate, &[x, y]);
+    }
 
     // Keccak
     for _ in 0..KECCAK_ITER_COUNT {
@@ -90,39 +78,33 @@ fn verify_block<F: Field + BigPrimeField>(
         gate.is_equal(ctx, expected, keccak);
     }
 
-    // // From binary
-    // for _ in 0..236 {
-    //     let x_from_bits = range.limbs_to_num(ctx, &x_bits, 1);
-    //     gate.is_equal(ctx, x, x_from_bits);
-    // }
+    // To binary
+    let x_bits = range.decompose_le(ctx, x, 1, 160);
+    for _ in 0..83 {
+        range.decompose_le(ctx, x, 1, 160);
+    }
 
-    // // Comparison
-    // for _ in 0..49 {
-    //     let lte = range.is_less_than(ctx, y, x, 160);
-    //     gate.is_zero(ctx, lte);
-    // }
+    // From binary
+    for _ in 0..484 {
+        let x_from_bits = range.limbs_to_num(ctx, &x_bits, 1);
+        gate.is_equal(ctx, x, x_from_bits);
+    }
 
-    // // Asserted comparison
-    // for _ in 0..19 {
-    //     range.check_less_than(ctx, y, x, 160);
-    // }
+    // Comparison
+    for _ in 0..3 {
+        let lte = range.is_less_than(ctx, y, x, 160);
+        gate.is_zero(ctx, lte);
+    }
 
-    // // Integer division
-    // for _ in 0..13 {
-    //     gate.div_unsafe(ctx, x, y);
-    // }
+    // Asserted comparison
+    for _ in 0..1 {
+        range.check_less_than(ctx, y, x, 160);
+    }
 
-    // // IsNegative
-    // for _ in 0..6 {
-    //     range.range_check(ctx, x, 160);
-    // }
-
-    // // Abs
-    // for _ in 0..4 {
-    //     range.range_check(ctx, x, 160);
-    //     // Always add to consider the worst case
-    //     gate.add(ctx, x, upper); // add 2^160 to make negative
-    // }
+    // Integer division
+    for _ in 0..1 {
+        gate.div_unsafe(ctx, x, y);
+    }
 }
 
 fn main() {

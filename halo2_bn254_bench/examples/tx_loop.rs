@@ -47,7 +47,7 @@ fn tx_loop<F: BigPrimeField>(
         PoseidonHasher::<F, T, RATE>::new(OptimizedPoseidonSpec::new::<R_F, R_P, 0>());
     poseidon.initialize_consts(ctx, &gate);
 
-    for _ in 0..5648 {
+    for _ in 0..5652 {
         poseidon.hash_fix_len_array(ctx, &gate, &[x, y]);
     }
 
