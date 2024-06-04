@@ -1,8 +1,0 @@
-/target
-/halo2_gadgets/*-layout.png
-/halo2_gadgets/benches/sha256_assets
-**/.*.swp
-**/*.rs.bk
-.vscode
-.DS_Store
-/book/book
