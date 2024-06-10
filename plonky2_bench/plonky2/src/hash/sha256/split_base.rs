@@ -141,15 +141,13 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F, D> for Bas
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-    use rand::{thread_rng, Rng};
-
     use crate::iop::witness::PartialWitness;
     use crate::plonk::circuit_builder::CircuitBuilder;
     use crate::plonk::circuit_data::CircuitConfig;
     use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-    use crate::split_base::CircuitBuilderSplit;
+    use anyhow::Result;
     use plonky2_field::types::Field;
+    use rand::prelude::*;
 
     #[test]
     fn test_split_base() -> Result<()> {

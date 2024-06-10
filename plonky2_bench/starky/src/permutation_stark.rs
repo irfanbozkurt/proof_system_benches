@@ -99,16 +99,6 @@ impl<F: RichField + Extendable<D>, const D: usize> Stark<F, D> for PermutationSt
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-    use plonky2::field::extension::Extendable;
-    use plonky2::field::types::Field;
-    use plonky2::hash::hash_types::RichField;
-    use plonky2::iop::witness::PartialWitness;
-    use plonky2::plonk::circuit_builder::CircuitBuilder;
-    use plonky2::plonk::circuit_data::CircuitConfig;
-    use plonky2::plonk::config::{AlgebraicHasher, GenericConfig, PoseidonGoldilocksConfig};
-    use plonky2::util::timing::TimingTree;
-
     use crate::config::StarkConfig;
     use crate::permutation_stark::PermutationStark;
     use crate::proof::StarkProofWithPublicInputs;
@@ -120,6 +110,16 @@ mod tests {
     use crate::stark::Stark;
     use crate::stark_testing::{test_stark_circuit_constraints, test_stark_low_degree};
     use crate::verifier::verify_stark_proof;
+    use anyhow::Result;
+    use plonky2::field::extension::Extendable;
+    use plonky2::field::types::Field;
+    use plonky2::hash::hash_types::RichField;
+    use plonky2::iop::witness::PartialWitness;
+    use plonky2::plonk::circuit_builder::CircuitBuilder;
+    use plonky2::plonk::circuit_data::CircuitConfig;
+    use plonky2::plonk::config::{AlgebraicHasher, GenericConfig, PoseidonGoldilocksConfig};
+    use plonky2::util::timing::TimingTree;
+    use std::time::Instant;
 
     #[test]
     fn test_pemutations_stark() -> Result<()> {
@@ -191,9 +191,36 @@ mod tests {
             &[public_input],
             &mut TimingTree::default(),
         )?;
-        verify_stark_proof(stark, proof.clone(), &config)?;
 
-        recursive_proof::<F, C, S, C, D>(stark, proof, &config, true)
+        let start_time = Instant::now();
+        verify_stark_proof(stark, proof.clone(), &config)?;
+        println!(
+            "permutation_stark STARK verification time: {:?}",
+            start_time.elapsed()
+        );
+
+        println!();
+
+        let start_time = Instant::now();
+        let stark = S::new(num_rows);
+        let trace = stark.generate_trace(public_input);
+        let proof = prove::<F, C, S, D>(
+            stark,
+            &config,
+            trace,
+            &[public_input],
+            &mut TimingTree::default(),
+        )?;
+
+        let result = recursive_proof::<F, C, S, C, D>(stark, proof, &config, true);
+        println!(
+            "permutation_stark STARK verification in circuit time: {:?}",
+            start_time.elapsed()
+        );
+
+        println!();
+
+        result
     }
 
     fn recursive_proof<
@@ -221,9 +248,9 @@ mod tests {
 
         verify_stark_proof_circuit::<F, InnerC, S, D>(&mut builder, stark, pt, inner_config);
 
-        if print_gate_counts {
-            builder.print_gate_counts(0);
-        }
+        // if print_gate_counts {
+        builder.print_gate_counts(0);
+        // }
 
         let data = builder.build::<C>();
         let proof = data.prove(pw)?;

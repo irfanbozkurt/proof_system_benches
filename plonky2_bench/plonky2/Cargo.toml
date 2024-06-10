@@ -47,7 +47,7 @@ getrandom = { version = "0.2", default-features = false, features = ["js"] }
 criterion = { version = "0.5.1", default-features = false }
 env_logger = { version = "0.9.0", default-features = false }
 num_cpus = { version = "1.14.0", default-features = false }
-rand = { workspace = true, features = ["getrandom"] }
+rand = { workspace = true, features = ["getrandom", "std"], default-features = true}
 rand_chacha = { version = "0.3.1", default-features = false }
 serde_cbor = { version = "0.11.2" }
 serde_json = { version = "1.0" }
@@ -73,3 +73,4 @@ harness = false
 # Display math equations properly in documentation
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", ".cargo/katex-header.html"]
+

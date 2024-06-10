@@ -400,14 +400,13 @@ pub fn make_circuits<F: RichField + Extendable<D>, const D: usize>(
 
 #[cfg(test)]
 mod tests {
+    use crate::hash::sha256::circuit::{array_to_bits, make_circuits};
+    use crate::iop::witness::{PartialWitness, WitnessWrite};
+    use crate::plonk::circuit_builder::CircuitBuilder;
+    use crate::plonk::circuit_data::CircuitConfig;
+    use crate::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
     use anyhow::Result;
-    use plonky2::iop::witness::{PartialWitness, WitnessWrite};
-    use plonky2::plonk::circuit_builder::CircuitBuilder;
-    use plonky2::plonk::circuit_data::CircuitConfig;
-    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
-    use rand::Rng;
-
-    use crate::circuit::{array_to_bits, make_circuits};
+    use rand::prelude::*;
 
     const EXPECTED_RES: [u8; 256] = [
         0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0,

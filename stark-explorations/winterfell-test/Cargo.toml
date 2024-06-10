@@ -1,0 +1,14 @@
+[package]
+name = "winterfell-test"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "winterfell-test"
+path = "src/main.rs"
+
+[dependencies]
+winterfell = { version = "*", features = ["concurrent"]}
+
+[features]
+concurrent = []

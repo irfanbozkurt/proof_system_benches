@@ -80,15 +80,6 @@ impl<F: RichField + Extendable<D>, const D: usize> Stark<F, D> for Unconstrained
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Result;
-    use plonky2::field::extension::Extendable;
-    use plonky2::hash::hash_types::RichField;
-    use plonky2::iop::witness::PartialWitness;
-    use plonky2::plonk::circuit_builder::CircuitBuilder;
-    use plonky2::plonk::circuit_data::CircuitConfig;
-    use plonky2::plonk::config::{AlgebraicHasher, GenericConfig, PoseidonGoldilocksConfig};
-    use plonky2::util::timing::TimingTree;
-
     use crate::config::StarkConfig;
     use crate::proof::StarkProofWithPublicInputs;
     use crate::prover::prove;
@@ -100,6 +91,15 @@ mod tests {
     use crate::stark_testing::{test_stark_circuit_constraints, test_stark_low_degree};
     use crate::unconstrained_stark::UnconstrainedStark;
     use crate::verifier::verify_stark_proof;
+    use anyhow::Result;
+    use plonky2::field::extension::Extendable;
+    use plonky2::hash::hash_types::RichField;
+    use plonky2::iop::witness::PartialWitness;
+    use plonky2::plonk::circuit_builder::CircuitBuilder;
+    use plonky2::plonk::circuit_data::CircuitConfig;
+    use plonky2::plonk::config::{AlgebraicHasher, GenericConfig, PoseidonGoldilocksConfig};
+    use plonky2::util::timing::TimingTree;
+    use std::time::Instant;
 
     #[test]
     fn test_unconstrained_stark() -> Result<()> {
@@ -156,9 +156,28 @@ mod tests {
         let stark = S::new(num_rows);
         let trace = stark.generate_trace();
         let proof = prove::<F, C, S, D>(stark, &config, trace, &[], &mut TimingTree::default())?;
-        verify_stark_proof(stark, proof.clone(), &config)?;
 
-        recursive_proof::<F, C, S, C, D>(stark, proof, &config, true)
+        let start_time = Instant::now();
+        verify_stark_proof(stark, proof.clone(), &config)?;
+        println!(
+            "unconstrained_stark STARK verification time: {:?}",
+            start_time.elapsed()
+        );
+
+        println!();
+
+        let start_time = Instant::now();
+        let stark = S::new(num_rows);
+        let trace = stark.generate_trace();
+        let proof = prove::<F, C, S, D>(stark, &config, trace, &[], &mut TimingTree::default())?;
+        let result = recursive_proof::<F, C, S, C, D>(stark, proof, &config, true);
+        println!(
+            "unconstrained_stark STARK verification in circuit time: {:?}",
+            start_time.elapsed()
+        );
+        println!();
+
+        result
     }
 
     fn recursive_proof<

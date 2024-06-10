@@ -318,6 +318,7 @@
 #![deny(missing_debug_implementations)]
 #![deny(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
+#![feature(generic_const_exprs)]
 
 #[cfg(not(feature = "std"))]
 extern crate alloc;
@@ -339,8 +340,8 @@ mod vanishing_poly;
 pub mod verifier;
 
 #[cfg(test)]
-pub mod fibonacci_stark;
-#[cfg(test)]
 pub mod permutation_stark;
+#[cfg(test)]
+pub mod stark_in_snark_bench;
 #[cfg(test)]
 pub mod unconstrained_stark;
