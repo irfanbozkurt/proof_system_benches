@@ -200,8 +200,8 @@ mod tests {
 
     #[test]
     fn test_recursive_stark_verifier_fibonacci() -> Result<()> {
-        let repetition = 1 << 8;
-        let num_rows = 1 << 16;
+        let repetition = 1 << 1;
+        let num_rows = 1 << 24;
         let config = StarkConfig::standard_fast_config();
 
         let public_inputs = [
@@ -233,26 +233,26 @@ mod tests {
         println!("------------------------------");
         println!();
 
-        // // Pure SNARK
-        // let (builder, pw) = fibo_snark(num_rows, repetition);
-        // let data = builder.build::<C>();
-        // let start_time = Instant::now();
-        // match data.prove(pw) {
-        //     Ok(proof) => {
-        //         println!("fibo SNARK proving time: {:?}", start_time.elapsed());
+        // Pure SNARK
+        let (builder, pw) = fibo_snark(num_rows, repetition);
+        let data = builder.build::<C>();
+        let start_time = Instant::now();
+        match data.prove(pw) {
+            Ok(proof) => {
+                println!("fibo SNARK proving time: {:?}", start_time.elapsed());
 
-        //         let start_time = Instant::now();
-        //         match data.verify(proof) {
-        //             Ok(_) => println!("fibo SNARK verifying time: {:?}", start_time.elapsed()),
-        //             Err(e) => println!("Verification failed: {:?}", e),
-        //         }
-        //     }
-        //     Err(e) => println!("Proving failed: {:?}", e),
-        // }
+                let start_time = Instant::now();
+                match data.verify(proof) {
+                    Ok(_) => println!("fibo SNARK verifying time: {:?}", start_time.elapsed()),
+                    Err(e) => println!("Verification failed: {:?}", e),
+                }
+            }
+            Err(e) => println!("Proving failed: {:?}", e),
+        }
 
-        // println!();
-        // println!("------------------------------");
-        // println!();
+        println!();
+        println!("------------------------------");
+        println!();
 
         // Recursive with STARK
         let stark = S::new(num_rows);
@@ -313,9 +313,9 @@ mod tests {
             start_time.elapsed()
         );
 
-        // let data = builder.build::<C>();
-        // let proof = data.prove(pw)?;
-        // data.verify(proof)
+        let data = builder.build::<C>();
+        let proof = data.prove(pw)?;
+        data.verify(proof);
         Ok(())
     }
 
