@@ -1,9 +1,0 @@
-# Cargo build
-/target
-
-# Profile-guided optimization
-/tmp
-pgo-data.profdata
-
-# MacOS nuisances
-.DS_Store
