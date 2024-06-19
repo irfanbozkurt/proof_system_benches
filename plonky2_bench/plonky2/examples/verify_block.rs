@@ -1,6 +1,7 @@
 use jemallocator::Jemalloc;
 use num::{BigUint, Num};
 use plonky2::field::types::Field;
+use plonky2::hash::hash_types::BytesHash;
 use plonky2::hash::poseidon::PoseidonHash;
 use plonky2::hash::sha256::circuit::{array_to_bits, make_circuits};
 use plonky2::nonnative::biguint::nonnative::CircuitBuilderNonNative;
@@ -82,23 +83,23 @@ fn main() {
     pw.set_biguint_target(&negative_example, &negative_example_value);
 
     // Sha256
-    const MSG_SIZE: usize = 242;
-    let mut msg = [0; MSG_SIZE as usize];
-    let x_bits = biguint_to_bits(&x_value);
-    for i in 0..MSG_SIZE - 1 {
-        msg[i] = x_bits[i % x_bits.len()];
+    const MSG_SIZE_BYTES: usize = 242;
+    let mut msg = [0; MSG_SIZE_BYTES as usize];
+    let x_bytes = x_value.to_bytes_le();
+    for i in 0..MSG_SIZE_BYTES - 1 {
+        msg[i] = x_bytes[i % x_bytes.len()];
     }
     let msg_bits = array_to_bits(&msg);
-    let len = msg.len() * 8;
     for _ in 0..2 {
-        let sha_256_bit_targets = make_circuits(&mut builder, len as u64);
-        for i in 0..len {
+        let sha_256_bit_targets = make_circuits(&mut builder, msg_bits.len() as u64);
+        for i in 0..msg_bits.len() {
             pw.set_bool_target(sha_256_bit_targets.message[i], msg_bits[i]);
         }
 
         let mut hasher = Sha256::new();
         hasher.update(&msg);
         let hash = hasher.finalize();
+
         let expected_res = array_to_bits(hash.as_slice());
         for i in 0..expected_res.len() {
             if expected_res[i] {
@@ -114,7 +115,7 @@ fn main() {
     let split = builder.split_nonnative_to_1_bit_limbs(&nonnative_x);
     let combined: NonNativeTarget<F> = builder.recombine_nonnative_bits(&split);
     builder.connect_nonnative(&nonnative_x, &combined);
-    for _ in 0..84 {
+    for _ in 0..83 {
         let nonnative_x = builder.biguint_to_nonnative::<F>(&x);
         let split = builder.split_nonnative_to_1_bit_limbs(&nonnative_x);
         let combined = builder.recombine_nonnative_bits(&split);
@@ -122,7 +123,7 @@ fn main() {
     }
 
     // From binary
-    for _ in 0..(484 - 84) {
+    for _ in 0..484 {
         let combined = builder.recombine_nonnative_bits(&split);
         builder.connect_nonnative(&nonnative_x, &combined);
     }

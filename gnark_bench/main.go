@@ -160,8 +160,7 @@ func (circuit *PreBlockCircuit) Define(api frontend.API) error {
 
 	// Comparison
 	for i := 0; i < 1280; i++ {
-		res := cmprtr.IsLess(circuit.Y, circuit.X)
-		api.AssertIsEqual(res, 1)
+		cmprtr.IsLess(circuit.Y, circuit.X)
 	}
 
 	// Asserted Comparison
@@ -601,7 +600,7 @@ func main() {
 			PreBlock()
 		} else if arg == 1 {
 			TxLoop()
-		} else {
+		} else if arg == 2 {
 			VerifyBlock()
 		}
 	}

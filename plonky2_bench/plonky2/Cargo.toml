@@ -38,6 +38,7 @@ sha2 = "0.10"
 plonky2_field = { version = "0.2.2", path = "../field", default-features = false }
 plonky2_maybe_rayon = { version = "0.2.0", path = "../maybe_rayon", default-features = false }
 plonky2_util = { version = "0.2.0", path = "../util", default-features = false }
+tiny-keccak = "2.0.2"
 
 
 [target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]

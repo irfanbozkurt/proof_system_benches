@@ -10,7 +10,6 @@ use halo2_scaffold::scaffold::run;
 #[cfg(feature = "parallel")]
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
-use snark_verifier_sdk::snark_verifier::loader::halo2::IntegerInstructions;
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct CircuitInput {}
@@ -25,12 +24,9 @@ fn tx_loop<F: BigPrimeField>(
     _: CircuitInput,
     _: &mut Vec<AssignedValue<F>>,
 ) {
-    // Init the context
-
     let range = builder.range_chip();
-    let gate = GateChip::<F>::default();
-
     let safe_type = SafeTypeChip::new(&range);
+    let gate = GateChip::<F>::default();
 
     let ctx: &mut halo2_base::Context<F> = builder.main(0);
 
@@ -51,7 +47,7 @@ fn tx_loop<F: BigPrimeField>(
         poseidon.hash_fix_len_array(ctx, &gate, &[x, y]);
     }
 
-    // To binary
+    // To binary 37.047875ms
     let x_bits = range.decompose_le(ctx, x, 1, 160);
     for _ in 0..64 {
         range.decompose_le(ctx, x, 1, 160);

@@ -28,8 +28,7 @@ fn pre_block<F: ScalarField>(
 
     // Comparison
     for _ in 0..1280 {
-        let lte = range.is_less_than(ctx, y, x, 160);
-        gate.is_zero(ctx, lte);
+        let _ = range.is_less_than(ctx, y, x, 160);
     }
 
     // Asserted comparison
