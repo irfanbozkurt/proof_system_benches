@@ -200,8 +200,8 @@ mod tests {
 
     #[test]
     fn test_recursive_stark_verifier_fibonacci() -> Result<()> {
-        let repetition = 1 << 1;
-        let num_rows = 1 << 24;
+        let repetition = 1 << 0;
+        let num_rows = 1 << 18;
         let config = StarkConfig::standard_fast_config();
 
         let public_inputs = [
@@ -220,30 +220,35 @@ mod tests {
             &public_inputs,
             &mut TimingTree::default(),
         )?;
-        println!("fibo_stark STARK proving time: {:?}", start_time.elapsed());
+        println!(
+            "STARK proving time (including witness generation): {:?}",
+            start_time.elapsed()
+        );
 
         let start_time = Instant::now();
         verify_stark_proof(stark, proof.clone(), &config)?;
-        println!(
-            "fibo_stark STARK verification time: {:?}",
-            start_time.elapsed()
-        );
+        println!("STARK verification time: {:?}", start_time.elapsed());
 
         println!();
         println!("------------------------------");
         println!();
 
         // Pure SNARK
+        let start_time = Instant::now();
         let (builder, pw) = fibo_snark(num_rows, repetition);
         let data = builder.build::<C>();
+        println!(
+            "pure_snark witness generation time: {:?}",
+            start_time.elapsed()
+        );
         let start_time = Instant::now();
         match data.prove(pw) {
             Ok(proof) => {
-                println!("fibo SNARK proving time: {:?}", start_time.elapsed());
+                println!("pure_snark proving time: {:?}", start_time.elapsed());
 
                 let start_time = Instant::now();
                 match data.verify(proof) {
-                    Ok(_) => println!("fibo SNARK verifying time: {:?}", start_time.elapsed()),
+                    Ok(_) => println!("pure_snark verifying time: {:?}", start_time.elapsed()),
                     Err(e) => println!("Verification failed: {:?}", e),
                 }
             }
@@ -273,7 +278,7 @@ mod tests {
             })
             .collect();
         println!(
-            "fibo_stark STARK recursive proving time: {:?}",
+            "stark_in_snark inner STARK proving time (sequential here but is parallelizable): {:?}",
             start_time.elapsed()
         );
 
@@ -308,14 +313,27 @@ mod tests {
                 &config,
             );
         });
+        let data = builder.build::<C>();
+        let time_spent_verifying_inner_starks = start_time.elapsed();
         println!(
-            "fibo_stark STARK recursive verification time: {:?}",
-            start_time.elapsed()
+            "stark_in_snark mother SNARK witness generation time (verifying inner STARK): {:?}",
+            time_spent_verifying_inner_starks
         );
 
-        let data = builder.build::<C>();
+        let start_time = Instant::now();
         let proof = data.prove(pw)?;
+        let time_spent_proving = start_time.elapsed();
+        println!(
+            "stark_in_snark mother SNARK proving time (verifying inner STARK): {:?}",
+            time_spent_proving
+        );
+
+        let start_time = Instant::now();
         data.verify(proof);
+        println!(
+            "stark_in_snark mother SNARK verification time (verifying inner STARK): {:?}",
+            start_time.elapsed()
+        );
         Ok(())
     }
 
